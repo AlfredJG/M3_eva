@@ -23,7 +23,7 @@ CREATE TABLE "Control_Prestamos" (
 
 
 CREATE TABLE "Socios" (
-	"id_Socio" INTEGER NOT NULL UNIQUE,
+	"id_socio" INTEGER NOT NULL UNIQUE,
 	"nombre" VARCHAR NOT NULL,
 	"categoria_socio" CHAR NOT NULL CHECK('B', 'C', 'D', 'E', 'F'),
 	"telefono" INTEGER NOT NULL,
@@ -104,3 +104,31 @@ ON UPDATE NO ACTION ON DELETE NO ACTION;
 ALTER TABLE "Control_Prestamos"
 ADD FOREIGN KEY("id_ejemplar") REFERENCES "Ejemplares"("id_ejemplar")
 ON UPDATE NO ACTION ON DELETE NO ACTION;
+
+CREATE TRIGGER RestriccionPrestamos
+BEFORE INSERT ON Control_Prestamos
+FOR EACH ROW
+BEGIN
+    DECLARE CategoriaLibro CHAR(1);
+    DECLARE CategoriaSocio CHAR(1);
+
+    -- Obteniendo la categoria del libro
+    SELECT categoria_libro INTO CategoriaLibro
+    FROM libros
+    WHERE id_titular = NEW.Id_titular;
+
+    -- Obteniendo la categoría del socio
+    SELECT categoria_socio INTO CategoriaSocio
+    FROM Socios
+    WHERE Id_socio = NEW.Id_socio;
+
+    -- Verificando restricciones
+    IF CategoriaLibro = 'A' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Ejemplares de Categoria A, no pueden ser prestados';
+    ELSEIF CategoriaLibro = 'B' AND CategoriaSocio NOT IN ('B', 'C', 'D', 'E', 'F') THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Los ejemplares de categoría B solo pueden ser prestados a socios de categoría B o superior.';
+    END IF;
+END;
+
