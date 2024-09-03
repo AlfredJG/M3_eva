@@ -1,0 +1,278 @@
+CREATE TABLE Cliente(
+	Cliente_RUT VARCHAR (10) PRIMARY KEY,
+	Nombre VARCHAR (120),
+	Giro VARCHAR (120),
+	Direccion VARCHAR (120),
+	Ciudad VARCHAR (40),
+	Fono VARCHAR (15)
+);
+
+CREATE TABLE Produccion(
+	Produccion_ID SERIAL PRIMARY KEY,
+	Planta_ID INT,
+	FechaInicio DATE,
+	FEchaTermino DATE
+);
+
+CREATE TABLE Empresa(
+	Empresa_RUT VARCHAR (10) PRIMARY KEY,
+	Nombre VARCHAR (120)
+);
+
+CREATE TABLE Venta(
+	NumeroFactura SERIAL PRIMARY KEY,
+	FechaVenta DATE,
+	Total INT,
+	Cliente_RUT VARCHAR (10)
+);
+
+CREATE TABLE DetProduccion(
+	DetProduccion_ID SERIAL PRIMARY KEY,
+	CantidadEsperada INT,
+	CantidadObtenida INT,
+	FechaInicio DATE,
+	FechaTermino DATE,
+	Receta_ID int,
+	Bodega_ID int,
+	Produccion int
+);
+
+CREATE TABLE Bodega(
+	Bodega_ID int PRIMARY KEY,
+	Nombre VARCHAR (120)	
+);
+
+CREATE TABLE DetReceta(
+	Receta_ID int,
+	Cantidad int,
+	Inventario_ID int,
+	Cecina_ID int
+);
+
+CREATE TABLE Cecina(
+	Cecina_ID SERIAL PRIMARY KEY,
+	Nombre VARCHAR (120),
+	Stock INT,
+	Precio INT,
+	TipoCecina_ID INT
+);
+
+CREATE TABLE TipoCecina(
+	TipoCecina_ID SERIAL PRIMARY KEY,
+	Nombre VARCHAR (120)
+);
+
+CREATE TABLE DetVenta(
+	DetVenta_ID SERIAL PRIMARY KEY,
+	Cantidad INT,
+	Descripcion VARCHAR (120),
+	Unitario INT,
+	Cecina_ID INT,
+	Venta_NumeroFactura INT
+);
+
+CREATE TABLE Maquinaria(
+	Maquinaria_ID SERIAL PRIMARY KEY,
+	Nombre VARCHAR (120)
+);
+
+CREATE TABLE PlantaProd(
+	PlantaProd_ID SERIAL PRIMARY KEY,
+	Nombre VARCHAR (120),
+	Maquinaria_ID INT
+);
+
+
+CREATE TABLE Receta(
+	Receta_ID SERIAL PRIMARY KEY,
+	Nombre VARCHAR (120)
+);
+
+CREATE TABLE Inventario(
+	Inventario_ID SERIAL PRIMARY KEY,
+	Nombre VARCHAR (120),
+	Stock INT
+);
+
+CREATE TABLE DetCompra(
+	DetCompra_ID SERIAL PRIMARY KEY,
+	Compra_NumeroFactura INT,
+	Cantidad INT,
+	Descripcion VARCHAR (120),
+	Unitario INT,
+	Inventario_ID INT
+);
+
+CREATE TABLE Compra(
+	NumeroFactura SERIAL PRIMARY KEY,
+	Fecha DATE,
+	Total INT,
+	Proveedor_RUT VARCHAR (120)
+);
+
+CREATE TABLE Proveedor(
+	Proveedor_RUT VARCHAR (10) PRIMARY KEY,
+	Nombre VARCHAR (120)
+	Activo INT
+);
+
+
+ALTER TABLE PlantaProd
+ADD CONSTRAINT Maquinaria_ID
+FOREIGN KEY (Maquinaria_ID) 
+REFERENCES Maquinaria(Maquinaria_ID);
+
+ALTER TABLE Produccion
+ADD CONSTRAINT Planta_ID
+FOREIGN KEY (Planta_ID) 
+REFERENCES PlantaProd(PlantaProd_ID);
+
+ALTER TABLE DetProduccion
+ADD CONSTRAINT Receta_ID
+FOREIGN KEY (Receta_ID) 
+REFERENCES Receta(Receta_ID),
+ADD CONSTRAINT Bodega_ID
+FOREIGN KEY (Bodega_ID)
+REFERENCES Bodega(Bodega_ID),
+ADD CONSTRAINT Produccion 
+FOREIGN KEY (Produccion)
+REFERENCES Produccion(Produccion_ID);
+
+ALTER TABLE DetReceta
+ADD CONSTRAINT Inventario_ID
+FOREIGN KEY (Inventario_ID) 
+REFERENCES Inventario(Inventario_ID),
+ADD CONSTRAINT Cecina_ID
+FOREIGN KEY (Cecina_ID)
+REFERENCES Cecina(Cecina_ID);
+
+ALTER TABLE DetVenta
+ADD CONSTRAINT Cecina_ID
+FOREIGN KEY (Cecina_ID) 
+REFERENCES Cecina(Cecina_ID),
+ADD CONSTRAINT Venta_NumeroFactura
+FOREIGN KEY (Venta_NumeroFactura)
+REFERENCES Venta(NumeroFactura);
+
+ALTER TABLE Venta
+ADD CONSTRAINT Cliente_RUT
+FOREIGN KEY (Cliente_RUT) 
+REFERENCES Cliente(Cliente_RUT);
+
+ALTER TABLE Cecina
+ADD CONSTRAINT TipoCecina_ID
+FOREIGN KEY (TipoCecina_ID) 
+REFERENCES TipoCecina(TipoCecina_ID);
+
+ALTER TABLE DetCompra
+ADD CONSTRAINT Compra_NumeroFactura
+FOREIGN KEY (Compra_NumeroFactura) 
+REFERENCES Compra(NumeroFactura),
+ADD CONSTRAINT Inventario_ID
+FOREIGN KEY (Inventario_ID)
+REFERENCES Inventario(Inventario_ID);
+
+ALTER TABLE Compra
+ADD CONSTRAINT Proveedor_RUT
+FOREIGN KEY (Proveedor_RUT) 
+REFERENCES Proveedor(Proveedor_RUT);
+
+/*
+	Se realizan operaciones solicitadas por el ejercicio
+
+*/
+
+-- Insertar un proveedor
+
+INSERT INTO Proveedor 
+VALUES ('101202VS0','Carnes Don Julio', 0);
+
+-- Modificar un proveedor
+
+UPDATE Proveedor 
+SET Nombre = 'Carnes Don Julio'
+WHERE Proveedor_RUT = '101202VS0';
+
+-- "Eliminar un proveedor"
+UPDATE Proveedor 
+SET Activo = 1
+WHERE Proveedor_RUT = '101202VS0';
+
+-- Eliminación real
+DELETE FROM Proveedor
+WHERE Proveedor_RUT = '101202VS0'
+
+
+-- Insertar en Compra y DetCompra (Involucra a Inventario tb)
+
+DO $$
+DECLARE
+    numero_factura INT;
+    num_correlativo_inventario INT;
+    cantidad_comprada INT;
+BEGIN
+    INSERT INTO Compra (Fecha, Total, Proveedor_RUT)
+    VALUES ('2024-12-01', 1, '101202VS0')
+    RETURNING NumeroFactura INTO numero_factura;
+
+    INSERT INTO Inventario (Nombre, Stock)
+    VALUES ('Carne Pierna', 100)
+    RETURNING Inventario_ID INTO num_correlativo_inventario;
+
+    INSERT INTO DetCompra (Compra_NumeroFactura, Cantidad, Descripcion, Unitario, Inventario_ID)
+    VALUES (numero_factura, 100, 'Carne Pierna', 1, num_correlativo_inventario);
+
+END $$;
+
+
+-- Modificar Compra
+
+UPDATE Proveedor
+SET Total = 2
+WHERE NumeroFactura = 1;
+
+-- Modificar DetCompra
+UPDATE DetCompra
+SET Cantidad = 15
+WHERE DetCompra_ID = 1;
+
+-- Eliminar DetCompra
+DELETE FROM DetCompra
+WHERE DetCompra_ID = 1;
+
+-- Eliminar una compra
+DELETE FROM Compra
+WHERE NumeroFactura = 1;
+
+/* Listar las compras con los datos del cliente */
+
+SELECT V.NumeroFactura AS Factura, V.FechaVenta AS Fecha, V.Total AS Total,
+C.Nombre AS Cliente, C.Cliente_RUT AS RUT
+FROM Venta V
+JOIN Cliente C ON V.Cliente_RUT = C.Cliente_RUT
+WHERE EXTRACT (YEAR FROM V.FechaVenta) = 2024 AND EXTRACT(MONTH FROM V.FechaVenta) = 12;
+
+/* Listar número, fecha y total de compras y ventas */
+
+SELECT V.NumeroFactura AS Factura, V.FechaVenta AS Fecha, V.Total, 'Venta' AS Tipo
+FROM Venta V
+UNION
+SELECT C.NumeroFactura, C.Fecha, C.Total, 'Compra' AS Tipo
+FROM Compra C;
+
+
+/* Listar todas las producciones en el año 2020 que contengan las 5 cecinas más vendidas */
+
+WITH Top5Cecinas AS (
+	SELECT Cecina_ID
+	FROM DetVenta
+	GROUP BY Cecina_ID
+	ORDER BY SUM(Cantidad) DESC
+	LIMIT 5
+)
+
+SELECT P.Produccion_ID, P.FechaInicio, P.FechaTermino
+FROM Produccion P
+JOIN DetProduccion DP ON P.Produccion_ID = DP.Produccion
+JOIN DetReceta DR ON DP.Receta_ID = DR.Receta_ID
+WHERE DP.FechaInicio BETWEEN '2020-01-01' AND '2020-12-31' AND DR.Cecina_ID IN (SELECT Cecina_ID FROM TOP5Cecinas);
